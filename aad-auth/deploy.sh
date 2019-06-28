@@ -5,12 +5,15 @@
 ##
 ##  Takes 2 parameters:
 ##
-##  1- Organization Name
-##  2- Admin email
+##  1- Name of resource group
+##  2- Organization Name
+##  3- Admin email
 
-org=$1
-admin=$2
+rg=$1
+org=$2
+admin=$3
 
+echo "Resource group:  $rg"
 echo "Organization Name:  $org"
 echo "Admin email:  $admin"
 

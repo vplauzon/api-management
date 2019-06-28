@@ -15,8 +15,81 @@
             "metadata": {
                 "description": "The email of the admin"
             }
+        },
+        "sku": {
+            "type": "string",
+            "metadata": {
+                "description": "Sku of the API Management"
+            },
+            "allowedValues": [
+                "Consumption",
+                "Developer",
+                "Basic",
+                "Standard",
+                "Premium"
+            ],
+            "defaultValue": "Premium"
         }
     },
-    "variables": {},
-    "resources": []
+    "variables": {
+        "VNet Name": "my-vnet",
+        "VNET Address Space": "10.0.0.0/20",
+        "API Subnet Name": "api-man",
+        "API Subnet Address Space": "10.0.0.0/26"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2017-10-01",
+            "name": "[variables('VNet Name')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VNET Address Space')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('API Subnet Name')]",
+                        "properties": {
+                            "addressPrefix": "[variables('API Subnet Address Space')]"
+                        }
+                    }
+                ]
+            },
+            "resources": []
+        },
+        {
+            "type": "Microsoft.ApiManagement/service",
+            "apiVersion": "2019-01-01",
+            "name": "[parameters('organizationName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet Name'))]"
+            ],
+            "properties": {
+                "notificationSenderEmail": "apimgmt-noreply@mail.windowsazure.com",
+                "hostnameConfigurations": [],
+                "virtualNetworkConfiguration": {
+                    "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet Name'), variables('API Subnet Name'))]"
+                },
+                "additionalLocations": [],
+                "customProperties": {},
+                "certificates": [],
+                "enableClientCertificate": true,
+                "virtualNetworkType": "External",
+                "publisherEmail": "[parameters('adminEmail')]",
+                "publisherName": "api-admin"
+            },
+            "sku": {
+                "name": "[parameters('sku')]"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            }
+        }
+    ]
 }
