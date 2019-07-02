@@ -89,7 +89,36 @@
             },
             "identity": {
                 "type": "SystemAssigned"
-            }
+            },
+            "resources": [
+                {
+                    "type": "products",
+                    "apiVersion": "2019-01-01",
+                    "name": "test",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+                    ],
+                    "properties": {
+                        "description": "My own product",
+                        "terms": "At your own risks",
+                        "subscriptionRequired": false,
+                        "subscriptionsLimit": null,
+                        "state": "published",
+                        "displayName": "testing"
+                    },
+                    "resources": [
+                        {
+                            "type": "apis",
+                            "apiVersion": "2019-01-01",
+                            "name": "my-own-api",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), 'test')]"
+                            ],
+                            "properties": {}
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }
