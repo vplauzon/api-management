@@ -32,7 +32,6 @@
         }
     },
     "variables": {
-        "Public Service": "public-service",
         "VNets": {
             "api-man": {
                 "Name": "my-vnet",
@@ -41,6 +40,7 @@
                 "Subnet Address Space": "10.0.0.0/26"
             }
         },
+        "Public Service": "public-service",
         "products": {
             "token": {
                 "name": "token-based",
@@ -64,9 +64,42 @@
                     "guests"
                 ]
             }
+        },
+        "apis": {
+            "one": {
+                "name": "one-api",
+                "displayName": "one-api",
+                "products": [
+                    "[variables('products')['token']['name']]",
+                    "[variables('products')['subscription']['name']]"
+                ]
+            }
         }
     },
     "resources": [
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2017-10-01",
+            "name": "[variables('VNets')['api-man']['Name']]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('VNets')['api-man']['Address Space']]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('VNets')['api-man']['Subnet Name']]",
+                        "properties": {
+                            "addressPrefix": "[variables('VNets')['api-man']['Subnet Address Space']]"
+                        }
+                    }
+                ]
+            },
+            "resources": []
+        },
         {
             "type": "Microsoft.Logic/workflows",
             "apiVersion": "2017-07-01",
@@ -111,29 +144,6 @@
                 },
                 "parameters": {}
             }
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks",
-            "apiVersion": "2017-10-01",
-            "name": "[variables('VNets')['api-man']['Name']]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [],
-            "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "[variables('VNets')['api-man']['Address Space']]"
-                    ]
-                },
-                "subnets": [
-                    {
-                        "name": "[variables('VNets')['api-man']['Subnet Name']]",
-                        "properties": {
-                            "addressPrefix": "[variables('VNets')['api-man']['Subnet Address Space']]"
-                        }
-                    }
-                ]
-            },
-            "resources": []
         },
         {
             "type": "Microsoft.ApiManagement/service",
@@ -198,6 +208,23 @@
                         "displayName": "[variables('products')['subscription']['displayName']]"
                     },
                     "resources": []
+                },
+                {
+                    "type": "apis",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('apis')['one']['name']]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+                    ],
+                    "properties": {
+                        "displayName": "[variables('apis')['one']['displayName']]",
+                        "apiRevision": "1",
+                        "path": "[variables('apis')['one']['name']]",
+                        "protocols": [
+                            "https"
+                        ],
+                        "isCurrent": true
+                    }
                 }
             ]
         },
@@ -226,16 +253,22 @@
                 "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]"
             ],
             "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/apis",
+            "apiVersion": "2019-01-01",
+            "copy": {
+                "name": "one-product-api",
+                "count": "[length(variables('apis')['one']['products'])]"
+            },
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['products'][copyIndex()], '/', variables('apis')['one']['name'])]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]",
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]",
+                "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
+            ],
+            "properties": {}
         }
     ],
-    "outputs": {
-        "t": {
-            "type": "string",
-            "value": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/guests')]"
-        },
-        "t2": {
-            "type": "string",
-            "value": "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
-        }
-    }
+    "outputs": {}
 }
