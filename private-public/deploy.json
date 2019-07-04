@@ -45,13 +45,23 @@
                 "name": "token-based",
                 "description": "API requires an AAD token",
                 "terms": "Use at your own risks",
-                "displayName": "Token based"
+                "displayName": "Token based",
+                "groups": [
+                    "administrators",
+                    "developers",
+                    "guests"
+                ]
             },
             "subscription": {
                 "name": "subscription-based",
                 "description": "API requires a subscription key",
                 "terms": "Use at your own risks",
-                "displayName": "Subscription based"
+                "displayName": "Subscription based",
+                "groups": [
+                    "administrators",
+                    "developers",
+                    "guests"
+                ]
             }
         },
         "api-junk": {
@@ -157,7 +167,11 @@
         {
             "type": "Microsoft.ApiManagement/service/products/groups",
             "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/administrators')]",
+            "copy": {
+                "name": "token-groups",
+                "count": "[length(variables('products')['token']['groups'])]"
+            },
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/', variables('products')['token']['groups'][copyIndex()])]",
             "dependsOn": [
                 "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
             ],
@@ -166,45 +180,13 @@
         {
             "type": "Microsoft.ApiManagement/service/products/groups",
             "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/developers')]",
+            "copy": {
+                "name": "token-groups",
+                "count": "[length(variables('products')['subscription']['groups'])]"
+            },
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/', variables('products')['subscription']['groups'][copyIndex()])]",
             "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
-            ],
-            "properties": {}
-        },
-        {
-            "type": "Microsoft.ApiManagement/service/products/groups",
-            "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/guests')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
-            ],
-            "properties": {}
-        },
-        {
-            "type": "Microsoft.ApiManagement/service/products/groups",
-            "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/administrators')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
-            ],
-            "properties": {}
-        },
-        {
-            "type": "Microsoft.ApiManagement/service/products/groups",
-            "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/developers')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
-            ],
-            "properties": {}
-        },
-        {
-            "type": "Microsoft.ApiManagement/service/products/groups",
-            "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/guests')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]"
             ],
             "properties": {}
         }
