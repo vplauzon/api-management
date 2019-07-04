@@ -32,6 +32,7 @@
         }
     },
     "variables": {
+        "Public Service": "public-service",
         "VNets": {
             "api-man": {
                 "Name": "my-vnet",
@@ -63,18 +64,54 @@
                     "guests"
                 ]
             }
-        },
-        "api-junk": {
-            "type": "apis",
-            "apiVersion": "2019-01-01",
-            "name": "my-own-api",
-            "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), 'test')]"
-            ],
-            "properties": {}
         }
     },
     "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[variables('Public Service')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {
+                                    "properties": {
+                                        "intro": {
+                                            "type": "string"
+                                        },
+                                        "number": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Response": {
+                            "runAfter": {},
+                            "type": "Response",
+                            "kind": "Http",
+                            "inputs": {
+                                "body": "@{triggerBody()?['intro']}:  @{add(5, triggerBody()?['number'])}",
+                                "statusCode": 200
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {}
+            }
+        },
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2017-10-01",
