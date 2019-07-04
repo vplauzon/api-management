@@ -32,29 +32,56 @@
         }
     },
     "variables": {
-        "VNet Name": "my-vnet",
-        "VNET Address Space": "10.0.0.0/20",
-        "API Subnet Name": "api-man",
-        "API Subnet Address Space": "10.0.0.0/26"
+        "VNets": {
+            "api-man": {
+                "Name": "my-vnet",
+                "Address Space": "10.0.0.0/20",
+                "Subnet Name": "api-man",
+                "Subnet Address Space": "10.0.0.0/26"
+            }
+        },
+        "products": {
+            "token": {
+                "name": "token-based",
+                "description": "API requires an AAD token",
+                "terms": "Use at your own risks",
+                "displayName": "Token based"
+            },
+            "subscription": {
+                "name": "subscription-based",
+                "description": "API requires a subscription key",
+                "terms": "Use at your own risks",
+                "displayName": "Subscription based"
+            }
+        },
+        "api-junk": {
+            "type": "apis",
+            "apiVersion": "2019-01-01",
+            "name": "my-own-api",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), 'test')]"
+            ],
+            "properties": {}
+        }
     },
     "resources": [
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2017-10-01",
-            "name": "[variables('VNet Name')]",
+            "name": "[variables('VNets')['api-man']['Name']]",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "[variables('VNET Address Space')]"
+                        "[variables('VNets')['api-man']['Address Space']]"
                     ]
                 },
                 "subnets": [
                     {
-                        "name": "[variables('API Subnet Name')]",
+                        "name": "[variables('VNets')['api-man']['Subnet Name']]",
                         "properties": {
-                            "addressPrefix": "[variables('API Subnet Address Space')]"
+                            "addressPrefix": "[variables('VNets')['api-man']['Subnet Address Space']]"
                         }
                     }
                 ]
@@ -68,13 +95,13 @@
             "location": "[resourceGroup().location]",
             "tags": {},
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet Name'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')['api-man']['Name'])]"
             ],
             "properties": {
                 "notificationSenderEmail": "apimgmt-noreply@mail.windowsazure.com",
                 "hostnameConfigurations": [],
                 "virtualNetworkConfiguration": {
-                    "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet Name'), variables('API Subnet Name'))]"
+                    "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNets')['api-man']['Name'], variables('VNets')['api-man']['Subnet Name'])]"
                 },
                 "additionalLocations": [],
                 "customProperties": {},
@@ -94,31 +121,102 @@
                 {
                     "type": "products",
                     "apiVersion": "2019-01-01",
-                    "name": "test",
+                    "name": "[variables('products')['token']['name']]",
                     "dependsOn": [
                         "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
                     ],
                     "properties": {
-                        "description": "My own product",
-                        "terms": "At your own risks",
+                        "description": "[variables('products')['token']['description']]",
+                        "terms": "[variables('products')['token']['terms']]",
                         "subscriptionRequired": false,
                         "subscriptionsLimit": null,
                         "state": "published",
-                        "displayName": "testing"
+                        "displayName": "[variables('products')['token']['displayName']]"
                     },
-                    "resources": [
-                        {
-                            "type": "apis",
-                            "apiVersion": "2019-01-01",
-                            "name": "my-own-api",
-                            "dependsOn": [
-                                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), 'test')]"
-                            ],
-                            "properties": {}
-                        }
-                    ]
+                    "resources": []
+                },
+                {
+                    "type": "products",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('products')['subscription']['name']]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+                    ],
+                    "properties": {
+                        "description": "[variables('products')['subscription']['description']]",
+                        "terms": "[variables('products')['subscription']['terms']]",
+                        "subscriptionRequired": false,
+                        "subscriptionsLimit": null,
+                        "state": "published",
+                        "displayName": "[variables('products')['subscription']['displayName']]"
+                    },
+                    "resources": []
                 }
             ]
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/administrators')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/developers')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/guests')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/administrators')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/developers')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products/groups",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'], '/guests')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {}
         }
-    ]
+    ],
+    "outputs": {
+        "t": {
+            "type": "string",
+            "value": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'], '/guests')]"
+        },
+        "t2": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+        }
+    }
 }
