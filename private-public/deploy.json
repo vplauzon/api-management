@@ -41,6 +41,7 @@
             }
         },
         "Public Service": "public-service",
+        "Backend Public Service": "public-service",
         "products": {
             "token": {
                 "name": "token-based",
@@ -70,7 +71,6 @@
                 "name": "one-api",
                 "displayName": "one-api",
                 "products": [
-                    "[variables('products')['token']['name']]",
                     "[variables('products')['subscription']['name']]"
                 ]
             }
@@ -225,6 +225,21 @@
                         ],
                         "isCurrent": true
                     }
+                },
+                {
+                    "type": "backends",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('Backend Public Service')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]",
+                        "[resourceId('Microsoft.Logic/workflows', variables('Public Service'))]"
+                    ],
+                    "properties": {
+                        "description": "Logic App Backend",
+                        "url": "[concat(reference(resourceId('Microsoft.Logic/workflows', variables('Public Service'))).accessEndpoint, '/triggers')]",
+                        "protocol": "http",
+                        "resourceId": "[concat('https://management.azure.com', resourceId('Microsoft.Logic/workflows', variables('Public Service')))]"
+                    }
                 }
             ]
         },
@@ -268,7 +283,58 @@
                 "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
             ],
             "properties": {}
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/public')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
+            ],
+            "properties": {
+                "displayName": "public",
+                "method": "GET",
+                "urlTemplate": "/public",
+                "templateParameters": [],
+                "request": {
+                    "queryParameters": [
+                        {
+                            "name": "intro",
+                            "description": "Introduction in the response",
+                            "type": "string",
+                            "defaultValue": "Default introduction",
+                            "required": true
+                        },
+                        {
+                            "name": "number",
+                            "description": "Number to compute with",
+                            "type": "int",
+                            "defaultValue": "42",
+                            "required": true
+                        }
+                    ],
+                    "headers": [],
+                    "representations": []
+                },
+                "responses": [
+                    {
+                        "statusCode": 200,
+                        "representations": [
+                            {
+                                "contentType": "text/plain",
+                                "sample": "Plain old text"
+                            }
+                        ],
+                        "headers": []
+                    }
+                ]
+            }
         }
     ],
-    "outputs": {}
+    "outputs": {
+        "logic-id": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.Logic/workflows', variables('Public Service'))]"
+        }
+    }
 }
