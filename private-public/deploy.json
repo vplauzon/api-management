@@ -194,7 +194,7 @@
                     ],
                     "properties": {
                         "displayName": "[variables('Secret Public Service')]",
-                        "value": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2017-07-01', variables('Logic App Key Type')).value]",
+                        "value": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2016-10-01', variables('Logic App Key Type')).value]",
                         "tags": [],
                         "secret": true
                     }
@@ -370,7 +370,7 @@
     "outputs": {
         "logic-url": {
             "type": "string",
-            "value": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2017-07-01', variables('Logic App Key Type')).value]"
+            "value": "joe"
         }
     }
 }
