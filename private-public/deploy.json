@@ -41,8 +41,11 @@
             }
         },
         "Public Service": "public-service",
+        "Logic App Key Type": {
+            "keyType": "Primary"
+        },
         "Backend Public Service": "public-service",
-        "Secret Public Service":"public-service-secret",
+        "Secret Public Service": "public-service-url",
         "products": {
             "token": {
                 "name": "token-based",
@@ -190,8 +193,8 @@
                         "[resourceId('Microsoft.Logic/workflows', variables('Public Service'))]"
                     ],
                     "properties": {
-                        "displayName": "[concat(variables('Public Service'), '-logic-app-sas')]",
-                        "value": "Yeah",
+                        "displayName": "[variables('Secret Public Service')]",
+                        "value": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2017-07-01', variables('Logic App Key Type')).value]",
                         "tags": [],
                         "secret": true
                     }
@@ -365,9 +368,9 @@
         }
     ],
     "outputs": {
-        "logic-id": {
+        "logic-url": {
             "type": "string",
-            "value": "[resourceId('Microsoft.Logic/workflows', variables('Public Service'))]"
+            "value": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2017-07-01', variables('Logic App Key Type')).value]"
         }
     }
 }
