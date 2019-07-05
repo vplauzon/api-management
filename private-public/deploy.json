@@ -72,7 +72,12 @@
                 "displayName": "one-api",
                 "products": [
                     "[variables('products')['subscription']['name']]"
-                ]
+                ],
+                "operations": {
+                    "public": {
+                        "name": "public"
+                    }
+                }
             }
         }
     },
@@ -287,7 +292,7 @@
         {
             "type": "Microsoft.ApiManagement/service/apis/operations",
             "apiVersion": "2019-01-01",
-            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/public')]",
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/', variables('apis')['one']['operations']['public']['name'])]",
             "dependsOn": [
                 "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
             ],
@@ -328,6 +333,18 @@
                         "headers": []
                     }
                 ]
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations/policies",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/', variables('apis')['one']['operations']['public']['name'], '/policy')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis/operations', parameters('organizationName'), variables('apis')['one']['name'], variables('apis')['one']['operations']['public']['name'])]"
+            ],
+            "properties": {
+                "value": "[concat('<policies><inbound><base />\r\n    <set-body>{\r\n              \"intro\":\"Hi there\",\r\n              \"number\":142\r\n            }</set-body>\r\n    <rewrite-uri template=\"/\" copy-unmatched-params=\"false\" />\r\n    <set-backend-service backend-id=\"', variables('Backend Public Service'), '\" />\r\n    <set-method>POST</set-method>\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>')]",
+                "format": "xml"
             }
         }
     ],
