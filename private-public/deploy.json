@@ -42,6 +42,7 @@
         },
         "Public Service": "public-service",
         "Backend Public Service": "public-service",
+        "Secret Public Service":"public-service-secret",
         "products": {
             "token": {
                 "name": "token-based",
@@ -180,6 +181,21 @@
                 "type": "SystemAssigned"
             },
             "resources": [
+                {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('Secret Public Service')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]",
+                        "[resourceId('Microsoft.Logic/workflows', variables('Public Service'))]"
+                    ],
+                    "properties": {
+                        "displayName": "[concat(variables('Public Service'), '-logic-app-sas')]",
+                        "value": "Yeah",
+                        "tags": [],
+                        "secret": true
+                    }
+                },
                 {
                     "type": "products",
                     "apiVersion": "2019-01-01",
