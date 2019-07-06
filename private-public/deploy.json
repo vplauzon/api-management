@@ -241,7 +241,7 @@
                     "properties": {
                         "description": "[variables('products')['subscription']['description']]",
                         "terms": "[variables('products')['subscription']['terms']]",
-                        "subscriptionRequired": false,
+                        "subscriptionRequired": true,
                         "subscriptionsLimit": null,
                         "state": "published",
                         "displayName": "[variables('products')['subscription']['displayName']]"
