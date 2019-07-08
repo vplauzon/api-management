@@ -80,6 +80,7 @@
                 "description": "API requires an AAD token",
                 "terms": "Use at your own risks",
                 "displayName": "Token based",
+                "subscriptionRequired": false,
                 "groups": [
                     "administrators",
                     "developers",
@@ -91,6 +92,7 @@
                 "description": "API requires a subscription key",
                 "terms": "Use at your own risks",
                 "displayName": "Subscription based",
+                "subscriptionRequired": true,
                 "groups": [
                     "administrators",
                     "developers",
@@ -103,7 +105,8 @@
                 "name": "one-api",
                 "displayName": "one-api",
                 "products": [
-                    "[variables('products')['subscription']['name']]"
+                    "[variables('products')['subscription']['name']]",
+                    "[variables('products')['token']['name']]"
                 ],
                 "operations": {
                     "public": {
@@ -346,7 +349,7 @@
                     "properties": {
                         "description": "[variables('products')['token']['description']]",
                         "terms": "[variables('products')['token']['terms']]",
-                        "subscriptionRequired": false,
+                        "subscriptionRequired": "[variables('products')['token']['subscriptionRequired']]",
                         "subscriptionsLimit": null,
                         "state": "published",
                         "displayName": "[variables('products')['token']['displayName']]"
@@ -363,7 +366,7 @@
                     "properties": {
                         "description": "[variables('products')['subscription']['description']]",
                         "terms": "[variables('products')['subscription']['terms']]",
-                        "subscriptionRequired": true,
+                        "subscriptionRequired": "[variables('products')['subscription']['subscriptionRequired']]",
                         "subscriptionsLimit": null,
                         "state": "published",
                         "displayName": "[variables('products')['subscription']['displayName']]"
