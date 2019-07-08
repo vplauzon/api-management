@@ -166,6 +166,38 @@
             "resources": []
         },
         {
+            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('VNets')[0]['Name'], '/peering-to-private-service')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[1]['Name'])]"
+            ],
+            "properties": {
+                "remoteVirtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[1]['Name'])]"
+                }
+            },
+            "resources": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('VNets')[0]['Name'], '/peering-to-private-consumer')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[2]['Name'])]"
+            ],
+            "properties": {
+                "remoteVirtualNetwork": {
+                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[2]['Name'])]"
+                }
+            },
+            "resources": []
+        },
+        {
             "type": "Microsoft.Network/networkProfiles",
             "apiVersion": "2019-04-01",
             "copy": {
