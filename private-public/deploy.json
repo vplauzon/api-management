@@ -15,50 +15,34 @@
             "metadata": {
                 "description": "The email of the admin"
             }
-        },
-        "sku": {
-            "type": "string",
-            "metadata": {
-                "description": "Sku of the API Management"
-            },
-            "allowedValues": [
-                "Consumption",
-                "Developer",
-                "Basic",
-                "Standard",
-                "Premium"
-            ],
-            "defaultValue": "Premium"
         }
     },
     "variables": {
-        "VNets": [
-            {
-                "Name": "api-man-vnet",
-                "Address Space": "10.0.0.0/20",
-                "Subnet Name": "api-man",
-                "Subnet Address Space": "10.0.0.0/26",
-                "Is Subnet Delegated": false
-            },
-            {
-                "Name": "private-service-vnet",
-                "Address Space": "10.1.0.0/20",
-                "Subnet Name": "service",
-                "Subnet Address Space": "10.1.0.0/26",
-                "Is Subnet Delegated": true,
-                "Interface Config Name": "private-service-interface",
-                "Interface IP Config": "private-service-ip-config"
-            },
-            {
-                "Name": "private-consumer-vnet",
-                "Address Space": "10.2.0.0/20",
-                "Subnet Name": "consumer",
-                "Subnet Address Space": "10.2.0.0/26",
-                "Is Subnet Delegated": true,
-                "Interface Config Name": "private-consumer-interface",
-                "Interface IP Config": "private-consumer-ip-config"
+        "VNet": {
+            "Name": "api-man-vnet",
+            "Address Space": "10.0.0.0/22",
+            "Subnets": {
+                "api-man": {
+                    "Subnet Name": "api-man",
+                    "Subnet Address Space": "10.0.0.0/24",
+                    "Is Subnet Delegated": false
+                },
+                "service": {
+                    "Subnet Name": "service",
+                    "Subnet Address Space": "10.0.1.0/24",
+                    "Is Subnet Delegated": true,
+                    "Interface Config Name": "private-service-interface",
+                    "Interface IP Config": "private-service-ip-config"
+                },
+                "consumer": {
+                    "Subnet Name": "consumer",
+                    "Subnet Address Space": "10.0.2.0/24",
+                    "Is Subnet Delegated": true,
+                    "Interface Config Name": "private-consumer-interface",
+                    "Interface IP Config": "private-consumer-ip-config"
+                }
             }
-        ],
+        },
         "Delegation Configuration": [
             {
                 "name": "DelegationService",
@@ -71,9 +55,11 @@
         "Logic App Key Type": {
             "keyType": "Primary"
         },
+        "API Management Sku": "Premium",
         "Public Service": "public-service",
         "Public Service Url": "public-service-url",
         "Public Service Query String": "public-service-query-string",
+        "Private Service Url": "private-service-url",
         "products": {
             "token": {
                 "name": "token-based",
@@ -110,7 +96,16 @@
                 ],
                 "operations": {
                     "public": {
-                        "name": "public"
+                        "name": "public",
+                        "urlTemplate": "/one/public"
+                    },
+                    "private-raw": {
+                        "name": "private-raw",
+                        "urlTemplate": "/one/private-raw"
+                    },
+                    "private-select": {
+                        "name": "private-select",
+                        "urlTemplate": "/one/private-select"
                     }
                 }
             }
@@ -120,25 +115,35 @@
         {
             "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2019-04-01",
-            "copy": {
-                "name": "VNETs",
-                "count": "[length(variables('VNets'))]"
-            },
-            "name": "[variables('VNets')[copyIndex()]['Name']]",
+            "name": "[variables('VNet')['Name']]",
             "location": "[resourceGroup().location]",
             "dependsOn": [],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "[variables('VNets')[copyIndex()]['Address Space']]"
+                        "[variables('VNet')['Address Space']]"
                     ]
                 },
                 "subnets": [
                     {
-                        "name": "[variables('VNets')[copyIndex()]['Subnet Name']]",
+                        "name": "[variables('VNet')['Subnets']['api-man']['Subnet Name']]",
                         "properties": {
-                            "addressPrefix": "[variables('VNets')[copyIndex()]['Subnet Address Space']]",
-                            "delegations": "[if(variables('VNets')[copyIndex()]['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
+                            "addressPrefix": "[variables('VNet')['Subnets']['api-man']['Subnet Address Space']]",
+                            "delegations": "[if(variables('VNet')['Subnets']['api-man']['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
+                        }
+                    },
+                    {
+                        "name": "[variables('VNet')['Subnets']['service']['Subnet Name']]",
+                        "properties": {
+                            "addressPrefix": "[variables('VNet')['Subnets']['service']['Subnet Address Space']]",
+                            "delegations": "[if(variables('VNet')['Subnets']['service']['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
+                        }
+                    },
+                    {
+                        "name": "[variables('VNet')['Subnets']['consumer']['Subnet Name']]",
+                        "properties": {
+                            "addressPrefix": "[variables('VNet')['Subnets']['consumer']['Subnet Address Space']]",
+                            "delegations": "[if(variables('VNet')['Subnets']['consumer']['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
                         }
                     }
                 ]
@@ -146,80 +151,24 @@
             "resources": []
         },
         {
-            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
-            "apiVersion": "2019-04-01",
-            "copy": {
-                "name": "Peerings",
-                "count": "[sub(length(variables('VNets')), 1)]"
-            },
-            "name": "[concat(variables('VNets')[add(copyIndex(), 1)]['Name'], '/peering-to-api-man')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[add(copyIndex(), 1)]['Name'])]"
-            ],
-            "properties": {
-                "remoteVirtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]"
-                }
-            },
-            "resources": []
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
-            "apiVersion": "2019-04-01",
-            "name": "[concat(variables('VNets')[0]['Name'], '/peering-to-private-service')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[1]['Name'])]"
-            ],
-            "properties": {
-                "remoteVirtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[1]['Name'])]"
-                }
-            },
-            "resources": []
-        },
-        {
-            "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
-            "apiVersion": "2019-04-01",
-            "name": "[concat(variables('VNets')[0]['Name'], '/peering-to-private-consumer')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]",
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[2]['Name'])]"
-            ],
-            "properties": {
-                "remoteVirtualNetwork": {
-                    "id": "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[2]['Name'])]"
-                }
-            },
-            "resources": []
-        },
-        {
             "type": "Microsoft.Network/networkProfiles",
             "apiVersion": "2019-04-01",
-            "copy": {
-                "name": "Profiles",
-                "count": "[sub(length(variables('VNets')), 1)]"
-            },
-            "name": "[concat(variables('VNets')[add(copyIndex(), 1)]['Name'], '-profile')]",
+            "name": "[concat(variables('VNet')['Subnets']['service']['Subnet Name'], '-profile')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[add(copyIndex(), 1)]['Name'])]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet')['Name'])]"
             ],
             "properties": {
                 "containerNetworkInterfaceConfigurations": [
                     {
-                        "name": "[variables('VNets')[add(copyIndex(), 1)]['Interface Config Name']]",
+                        "name": "[variables('VNet')['Subnets']['service']['Interface Config Name']]",
                         "properties": {
                             "ipConfigurations": [
                                 {
-                                    "name": "[variables('VNets')[add(copyIndex(), 1)]['Interface IP Config']]",
+                                    "name": "[variables('VNet')['Subnets']['service']['Interface IP Config']]",
                                     "properties": {
                                         "subnet": {
-                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNets')[add(copyIndex(), 1)]['Name'], variables('VNets')[add(copyIndex(), 1)]['Subnet Name'])]"
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet')['Name'], variables('VNet')['Subnets']['service']['Subnet Name'])]"
                                         }
                                     }
                                 }
@@ -231,12 +180,41 @@
             "resources": []
         },
         {
-            "name": "private-service-group",
-            "type": "Microsoft.ContainerInstance/containerGroups",
-            "apiVersion": "2018-10-01",
+            "type": "Microsoft.Network/networkProfiles",
+            "apiVersion": "2019-04-01",
+            "name": "[concat(variables('VNet')['Subnets']['consumer']['Subnet Name'], '-profile')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.Network/networkProfiles', concat(variables('VNets')[1]['Name'], '-profile'))]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet')['Name'])]"
+            ],
+            "properties": {
+                "containerNetworkInterfaceConfigurations": [
+                    {
+                        "name": "[variables('VNet')['Subnets']['consumer']['Interface Config Name']]",
+                        "properties": {
+                            "ipConfigurations": [
+                                {
+                                    "name": "[variables('VNet')['Subnets']['consumer']['Interface IP Config']]",
+                                    "properties": {
+                                        "subnet": {
+                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet')['Name'], variables('VNet')['Subnets']['consumer']['Subnet Name'])]"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "resources": []
+        },
+        {
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2018-10-01",
+            "name": "private-service-group",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkProfiles', concat(variables('VNet')['Subnets']['service']['Subnet Name'], '-profile'))]"
             ],
             "properties": {
                 "containers": [
@@ -261,7 +239,7 @@
                 ],
                 "osType": "Linux",
                 "networkProfile": {
-                    "Id": "[resourceId('Microsoft.Network/networkProfiles', concat(variables('VNets')[1]['Name'], '-profile'))]"
+                    "Id": "[resourceId('Microsoft.Network/networkProfiles', concat(variables('VNet')['Subnets']['service']['Subnet Name'], '-profile'))]"
                 },
                 "restartPolicy": "Always"
             }
@@ -318,13 +296,13 @@
             "location": "[resourceGroup().location]",
             "tags": {},
             "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNets')[0]['Name'])]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet')['Name'])]"
             ],
             "properties": {
                 "notificationSenderEmail": "apimgmt-noreply@mail.windowsazure.com",
                 "hostnameConfigurations": [],
                 "virtualNetworkConfiguration": {
-                    "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNets')[0]['Name'], variables('VNets')[0]['Subnet Name'])]"
+                    "subnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet')['Name'], variables('VNet')['Subnets']['api-man']['Subnet Name'])]"
                 },
                 "additionalLocations": [],
                 "customProperties": {},
@@ -335,7 +313,7 @@
                 "publisherName": "api-admin"
             },
             "sku": {
-                "name": "[parameters('sku')]"
+                "name": "[variables('API Management Sku')]"
             },
             "identity": {
                 "type": "SystemAssigned"
@@ -369,6 +347,21 @@
                         "value": "[concat('?', split(listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2016-10-01', variables('Logic App Key Type')).value, '?')[1])]",
                         "tags": [],
                         "secret": true
+                    }
+                },
+                {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('Private Service Url')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]",
+                        "[resourceId('Microsoft.ContainerInstance/containerGroups', 'private-service-group')]"
+                    ],
+                    "properties": {
+                        "displayName": "[variables('Private Service Url')]",
+                        "value": "[concat('http://', reference(resourceId('Microsoft.ContainerInstance/containerGroups', 'private-service-group')).ipAddress.ip)]",
+                        "tags": [],
+                        "secret": false
                     }
                 },
                 {
@@ -473,9 +466,9 @@
                 "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
             ],
             "properties": {
-                "displayName": "public",
+                "displayName": "[variables('apis')['one']['operations']['public']['name']]",
                 "method": "GET",
-                "urlTemplate": "/public",
+                "urlTemplate": "[variables('apis')['one']['operations']['public']['urlTemplate']]",
                 "templateParameters": [],
                 "request": {
                     "queryParameters": [
@@ -524,12 +517,56 @@
                 "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-body>@{var body=new {intro=context.Request.OriginalUrl.Query[\"intro\"].First(), number=int.Parse(context.Request.Url.Query[\"number\"].First())};return JObject.FromObject(body).ToString();}</set-body>\r\n    <set-backend-service base-url=\"{{public-service-url}}\" />\r\n    <rewrite-uri template=\"{{public-service-query-string}}\" copy-unmatched-params=\"false\" />\r\n    <set-method>POST</set-method>\r\n    <set-header name=\"Content-Type\" exists-action=\"override\">\r\n      <value>application/json</value>\r\n    </set-header>\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                 "format": "xml"
             }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/', variables('apis')['one']['operations']['private-raw']['name'])]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis', parameters('organizationName'), variables('apis')['one']['name'])]"
+            ],
+            "properties": {
+                "displayName": "[variables('apis')['one']['operations']['private-raw']['name']]",
+                "method": "GET",
+                "urlTemplate": "[variables('apis')['one']['operations']['private-raw']['urlTemplate']]",
+                "templateParameters": [],
+                "request": {
+                    "queryParameters": [],
+                    "headers": [],
+                    "representations": []
+                },
+                "responses": [
+                    {
+                        "statusCode": 200,
+                        "representations": [
+                            {
+                                "contentType": "text/plain",
+                                "sample": "Plain old text"
+                            }
+                        ],
+                        "headers": []
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/apis/operations/policies",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('apis')['one']['name'], '/', variables('apis')['one']['operations']['private-raw']['name'], '/policy')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/apis/operations', parameters('organizationName'), variables('apis')['one']['name'], variables('apis')['one']['operations']['private-raw']['name'])]",
+                "[resourceId('Microsoft.ApiManagement/service/properties', parameters('organizationName'), variables('Private Service Url'))]"
+            ],
+            "properties": {
+                "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{private-service-url}}\" />\r\n    <rewrite-uri template=\"/\" copy-unmatched-params=\"false\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                "format": "xml"
+            }
         }
     ],
     "outputs": {
-        "logic-url": {
-            "type": "array",
-            "value": "[split(listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', variables('Public Service')), '/triggers/manual'), '2016-10-01', variables('Logic App Key Type')).value, '?')]"
+        "container": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', 'private-service-group')).ipAddress.ip]"
         }
     }
 }
