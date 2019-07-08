@@ -37,13 +37,15 @@
                 "Name": "api-man-vnet",
                 "Address Space": "10.0.0.0/20",
                 "Subnet Name": "api-man",
-                "Subnet Address Space": "10.0.0.0/26"
+                "Subnet Address Space": "10.0.0.0/26",
+                "Is Subnet Delegated": false
             },
             {
                 "Name": "private-service-vnet",
                 "Address Space": "10.1.0.0/20",
                 "Subnet Name": "service",
                 "Subnet Address Space": "10.1.0.0/26",
+                "Is Subnet Delegated": true,
                 "Interface Config Name": "private-service-interface",
                 "Interface IP Config": "private-service-ip-config"
             },
@@ -52,10 +54,20 @@
                 "Address Space": "10.2.0.0/20",
                 "Subnet Name": "consumer",
                 "Subnet Address Space": "10.2.0.0/26",
+                "Is Subnet Delegated": true,
                 "Interface Config Name": "private-consumer-interface",
                 "Interface IP Config": "private-consumer-ip-config"
             }
         ],
+        "Delegation Configuration": [
+            {
+                "name": "DelegationService",
+                "properties": {
+                    "serviceName": "Microsoft.ContainerInstance/containerGroups"
+                }
+            }
+        ],
+        "Empty Delegation Configuration": [],
         "Logic App Key Type": {
             "keyType": "Primary"
         },
@@ -123,14 +135,7 @@
                         "name": "[variables('VNets')[copyIndex()]['Subnet Name']]",
                         "properties": {
                             "addressPrefix": "[variables('VNets')[copyIndex()]['Subnet Address Space']]",
-                            "delegations": [
-                                {
-                                    "name": "DelegationService",
-                                    "properties": {
-                                        "serviceName": "Microsoft.ContainerInstance/containerGroups"
-                                    }
-                                }
-                            ]
+                            "delegations": "[if(variables('VNets')[copyIndex()]['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
                         }
                     }
                 ]
