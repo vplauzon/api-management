@@ -71,6 +71,8 @@
         },
         "API Management Sku": "Premium",
         "Public Service": "public-service",
+        "Public Consumer Subscription": "public-consumer-subscription",
+        "Public Consumer Token": "public-consumer-token",
         "Public Service Url": "public-service-url",
         "Public Service Query String": "public-service-query-string",
         "Private Service Url": "private-service-url",
@@ -125,7 +127,9 @@
                     }
                 }
             }
-        }
+        },
+        "Subcription Subscription": "subsub",
+        "Subcription Token": "subToken"
     },
     "resources": [
         {
@@ -670,6 +674,175 @@
             "properties": {
                 "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{private-service-url}}\" />\r\n    <rewrite-uri template=\"/\" copy-unmatched-params=\"false\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n    <set-body>@{\r\n        var raw=context.Response.Body.As&lt;string&gt;(true);\r\n        var startIndex = raw.IndexOf(\"&lt;/b&gt;\") + 4;\r\n        var endIndex = raw.IndexOf(\"&lt;br/&gt;\");\r\n        var host = raw.Substring(startIndex, endIndex - startIndex).Trim();\r\n        var response = new { hostName = host };\r\n        \r\n        return JObject.FromObject(response).ToString();\r\n        }</set-body>\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                 "format": "xml"
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/subscriptions",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('Subcription Subscription'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]"
+            ],
+            "properties": {
+                "scope": "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]",
+                "allowTracing": true,
+                "displayName": "[variables('Subcription Subscription')]"
+            }
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/subscriptions",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('Subcription Token'))]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "properties": {
+                "scope": "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]",
+                "allowTracing": true,
+                "displayName": "[variables('Subcription Token')]"
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[variables('Public Consumer Subscription')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]"
+            ],
+            "properties": {
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "actions": {
+                        "http-to-api-man": {
+                            "inputs": {
+                                "headers": {
+                                    "Ocp-Apim-Subscription-Key": "186a737fceca4555a7f6384aa12febd5",
+                                    "Ocp-Apim-Trace": "true"
+                                },
+                                "method": "GET",
+                                "uri": "[concat('https://', parameters('organizationName'), '.azure-api.net/', variables('apis')['one']['name'], variables('apis')['one']['operations']['public']['urlTemplate'], '?intro=Hi%20From%20Logic%20App-Without%20JWT&number=747')]"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        },
+                        "failed": {
+                            "inputs": {
+                                "body": "@body('http-to-api-man')",
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "http-to-api-man": [
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "success": {
+                            "inputs": {
+                                "body": "@body('http-to-api-man')",
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "http-to-api-man": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {},
+                "accessControl": {}
+            }
+        },
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[variables('Public Consumer Token')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+            ],
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {},
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "actions": {
+                        "http-to-api-man": {
+                            "inputs": {
+                                "authentication": {
+                                    "audience": "[parameters('appId')]",
+                                    "type": "ManagedServiceIdentity"
+                                },
+                                "headers": {
+                                    "Ocp-Apim-Subscription-Key": "186a737fceca4555a7f6384aa12febd5",
+                                    "Ocp-Apim-Trace": "true"
+                                },
+                                "method": "GET",
+                                "uri": "[concat('https://', parameters('organizationName'), '.azure-api.net/', variables('apis')['one']['name'], variables('apis')['one']['operations']['public']['urlTemplate'], '?intro=Hi%20From%20Logic%20App-Without%20JWT&number=747')]"
+                            },
+                            "runAfter": {},
+                            "type": "Http"
+                        },
+                        "failed": {
+                            "inputs": {
+                                "body": "@body('http-to-api-man')",
+                                "statusCode": 500
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "http-to-api-man": [
+                                    "Failed"
+                                ]
+                            },
+                            "type": "Response"
+                        },
+                        "success": {
+                            "inputs": {
+                                "body": "@body('http-to-api-man')",
+                                "statusCode": 200
+                            },
+                            "kind": "Http",
+                            "runAfter": {
+                                "http-to-api-man": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "Response"
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {},
+                "accessControl": {}
             }
         }
     ],
