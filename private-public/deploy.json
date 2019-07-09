@@ -15,6 +15,20 @@
             "metadata": {
                 "description": "The email of the admin"
             }
+        },
+        "tenantName": {
+            "type": "string",
+            "minLength": 3,
+            "metadata": {
+                "description": "Name of the Azure AD tenant"
+            }
+        },
+        "appId": {
+            "type": "string",
+            "minLength": 3,
+            "metadata": {
+                "description": "Azure AD Application ID that gates the token-based product"
+            }
         }
     },
     "variables": {
@@ -60,6 +74,8 @@
         "Public Service Url": "public-service-url",
         "Public Service Query String": "public-service-query-string",
         "Private Service Url": "private-service-url",
+        "Tenant Name": "tenant-name",
+        "App Id": "app-id",
         "products": {
             "token": {
                 "name": "token-based",
@@ -331,6 +347,34 @@
                 {
                     "type": "properties",
                     "apiVersion": "2019-01-01",
+                    "name": "[variables('Tenant Name')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+                    ],
+                    "properties": {
+                        "displayName": "[variables('Tenant Name')]",
+                        "value": "[parameters('tenantName')]",
+                        "tags": [],
+                        "secret": false
+                    }
+                },
+                {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('App Id')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+                    ],
+                    "properties": {
+                        "displayName": "[variables('App Id')]",
+                        "value": "[parameters('appId')]",
+                        "tags": [],
+                        "secret": true
+                    }
+                },
+                {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
                     "name": "[variables('Public Service Url')]",
                     "dependsOn": [
                         "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]",
@@ -374,40 +418,6 @@
                     }
                 },
                 {
-                    "type": "products",
-                    "apiVersion": "2019-01-01",
-                    "name": "[variables('products')['token']['name']]",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
-                    ],
-                    "properties": {
-                        "description": "[variables('products')['token']['description']]",
-                        "terms": "[variables('products')['token']['terms']]",
-                        "subscriptionRequired": "[variables('products')['token']['subscriptionRequired']]",
-                        "subscriptionsLimit": null,
-                        "state": "published",
-                        "displayName": "[variables('products')['token']['displayName']]"
-                    },
-                    "resources": []
-                },
-                {
-                    "type": "products",
-                    "apiVersion": "2019-01-01",
-                    "name": "[variables('products')['subscription']['name']]",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
-                    ],
-                    "properties": {
-                        "description": "[variables('products')['subscription']['description']]",
-                        "terms": "[variables('products')['subscription']['terms']]",
-                        "subscriptionRequired": "[variables('products')['subscription']['subscriptionRequired']]",
-                        "subscriptionsLimit": null,
-                        "state": "published",
-                        "displayName": "[variables('products')['subscription']['displayName']]"
-                    },
-                    "resources": []
-                },
-                {
                     "type": "apis",
                     "apiVersion": "2019-01-01",
                     "name": "[variables('apis')['one']['name']]",
@@ -425,6 +435,53 @@
                     }
                 }
             ]
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['token']['name'])]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+            ],
+            "properties": {
+                "description": "[variables('products')['token']['description']]",
+                "terms": "[variables('products')['token']['terms']]",
+                "subscriptionRequired": "[variables('products')['token']['subscriptionRequired']]",
+                "subscriptionsLimit": null,
+                "state": "published",
+                "displayName": "[variables('products')['token']['displayName']]"
+            },
+            "resources": [
+                {
+                    "type": "policies",
+                    "apiVersion": "2019-01-01",
+                    "name": "policy",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+                    ],
+                    "properties": {
+                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <validate-jwt header-name=\"Authorization\" failed-validation-httpcode=\"401\" failed-validation-error-message=\"Unauthorized. Access token is missing or invalid.\" output-token-variable-name=\"jwt\">\r\n      <openid-config url=\"https://login.microsoftonline.com/{{tenant-name}}.onmicrosoft.com/.well-known/openid-configuration\" />\r\n      <audiences>\r\n        <audience>{{app-id}}</audience>\r\n      </audiences>\r\n    </validate-jwt>\r\n    <set-header name=\"Authorization\" exists-action=\"delete\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                        "format": "xml"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.ApiManagement/service/products",
+            "apiVersion": "2019-01-01",
+            "name": "[concat(parameters('organizationName'), '/', variables('products')['subscription']['name'])]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', parameters('organizationName'))]"
+            ],
+            "properties": {
+                "description": "[variables('products')['subscription']['description']]",
+                "terms": "[variables('products')['subscription']['terms']]",
+                "subscriptionRequired": "[variables('products')['subscription']['subscriptionRequired']]",
+                "subscriptionsLimit": null,
+                "state": "published",
+                "displayName": "[variables('products')['subscription']['displayName']]"
+            },
+            "resources": []
         },
         {
             "type": "Microsoft.ApiManagement/service/products/groups",
