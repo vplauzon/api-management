@@ -708,7 +708,7 @@
             "name": "[variables('Public Consumer Subscription')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['subscription']['name'])]"
+                "[resourceId('Microsoft.ApiManagement/service/subscriptions', parameters('organizationName'), variables('Subcription Subscription'))]"
             ],
             "properties": {
                 "definition": {
@@ -728,7 +728,7 @@
                         "http-to-api-man": {
                             "inputs": {
                                 "headers": {
-                                    "Ocp-Apim-Subscription-Key": "186a737fceca4555a7f6384aa12febd5",
+                                    "Ocp-Apim-Subscription-Key": "[reference(resourceId('Microsoft.ApiManagement/service/subscriptions', parameters('organizationName'), variables('Subcription Subscription'))).primaryKey]",
                                     "Ocp-Apim-Trace": "true"
                                 },
                                 "method": "GET",
@@ -776,7 +776,7 @@
             "name": "[variables('Public Consumer Token')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+                "[resourceId('Microsoft.ApiManagement/service/subscriptions', parameters('organizationName'), variables('Subcription Token'))]"
             ],
             "identity": {
                 "type": "SystemAssigned"
@@ -803,7 +803,7 @@
                                     "type": "ManagedServiceIdentity"
                                 },
                                 "headers": {
-                                    "Ocp-Apim-Subscription-Key": "186a737fceca4555a7f6384aa12febd5",
+                                    "Ocp-Apim-Subscription-Key": "[reference(resourceId('Microsoft.ApiManagement/service/subscriptions', parameters('organizationName'), variables('Subcription Token'))).primaryKey]",
                                     "Ocp-Apim-Trace": "true"
                                 },
                                 "method": "GET",
