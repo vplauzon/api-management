@@ -630,7 +630,7 @@
                 "[resourceId('Microsoft.ApiManagement/service/properties', parameters('organizationName'), variables('Private Service Url'))]"
             ],
             "properties": {
-                "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{private-service-url}}\" />\r\n    <rewrite-uri template=\"/\" copy-unmatched-params=\"false\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n    <set-body>\r\n        @{\r\n            var raw=context.Response.Body.As&lt;string&gt;(true);\r\n            var startIndex = raw.IndexOf(\"&lt;/b&gt;\") + 4;\r\n            var endIndex = raw.IndexOf(\"&lt;br/&gt;\");\r\n            var host = raw.Substring(startIndex, endIndex - startIndex).Trim();\r\n            var response = new { hostName = host };\r\n            \r\n            return JObject.FromObject(response).ToString();\r\n        }\r\n        </set-body>\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{private-service-url}}\" />\r\n    <rewrite-uri template=\"/\" copy-unmatched-params=\"false\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound/>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                 "format": "xml"
             }
         },
