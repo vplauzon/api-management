@@ -461,7 +461,9 @@
                     "apiVersion": "2019-01-01",
                     "name": "policy",
                     "dependsOn": [
-                        "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]"
+                        "[resourceId('Microsoft.ApiManagement/service/products', parameters('organizationName'), variables('products')['token']['name'])]",
+                        "[resourceId('Microsoft.ApiManagement/service/properties', parameters('organizationName'), variables('App Id'))]",
+                        "[resourceId('Microsoft.ApiManagement/service/properties', parameters('organizationName'), variables('Tenant Name'))]"
                     ],
                     "properties": {
                         "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <validate-jwt header-name=\"Authorization\" failed-validation-httpcode=\"401\" failed-validation-error-message=\"Unauthorized. Access token is missing or invalid.\" output-token-variable-name=\"jwt\">\r\n      <openid-config url=\"https://login.microsoftonline.com/{{tenant-name}}.onmicrosoft.com/.well-known/openid-configuration\" />\r\n      <audiences>\r\n        <audience>{{app-id}}</audience>\r\n      </audiences>\r\n    </validate-jwt>\r\n    <set-header name=\"Authorization\" exists-action=\"delete\" />\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
