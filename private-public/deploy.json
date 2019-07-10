@@ -115,15 +115,15 @@
                 "operations": {
                     "public": {
                         "name": "public",
-                        "urlTemplate": "/one/public"
+                        "urlTemplate": "/public"
                     },
                     "private-raw": {
                         "name": "private-raw",
-                        "urlTemplate": "/one/private-raw"
+                        "urlTemplate": "/private-raw"
                     },
                     "private-select": {
                         "name": "private-select",
-                        "urlTemplate": "/one/private-select"
+                        "urlTemplate": "/private-select"
                     }
                 }
             }
