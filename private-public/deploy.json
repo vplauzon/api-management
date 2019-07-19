@@ -47,13 +47,6 @@
                     "Is Subnet Delegated": true,
                     "Interface Config Name": "private-service-interface",
                     "Interface IP Config": "private-service-ip-config"
-                },
-                "consumer": {
-                    "Subnet Name": "consumer",
-                    "Subnet Address Space": "10.0.2.0/24",
-                    "Is Subnet Delegated": true,
-                    "Interface Config Name": "private-consumer-interface",
-                    "Interface IP Config": "private-consumer-ip-config"
                 }
             }
         },
@@ -158,13 +151,6 @@
                             "addressPrefix": "[variables('VNet')['Subnets']['service']['Subnet Address Space']]",
                             "delegations": "[if(variables('VNet')['Subnets']['service']['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
                         }
-                    },
-                    {
-                        "name": "[variables('VNet')['Subnets']['consumer']['Subnet Name']]",
-                        "properties": {
-                            "addressPrefix": "[variables('VNet')['Subnets']['consumer']['Subnet Address Space']]",
-                            "delegations": "[if(variables('VNet')['Subnets']['consumer']['Is Subnet Delegated'], variables('Delegation Configuration'), variables('Empty Delegation Configuration'))]"
-                        }
                     }
                 ]
             },
@@ -189,35 +175,6 @@
                                     "properties": {
                                         "subnet": {
                                             "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet')['Name'], variables('VNet')['Subnets']['service']['Subnet Name'])]"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                ]
-            },
-            "resources": []
-        },
-        {
-            "type": "Microsoft.Network/networkProfiles",
-            "apiVersion": "2019-04-01",
-            "name": "[concat(variables('VNet')['Subnets']['consumer']['Subnet Name'], '-profile')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/virtualNetworks', variables('VNet')['Name'])]"
-            ],
-            "properties": {
-                "containerNetworkInterfaceConfigurations": [
-                    {
-                        "name": "[variables('VNet')['Subnets']['consumer']['Interface Config Name']]",
-                        "properties": {
-                            "ipConfigurations": [
-                                {
-                                    "name": "[variables('VNet')['Subnets']['consumer']['Interface IP Config']]",
-                                    "properties": {
-                                        "subnet": {
-                                            "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('VNet')['Name'], variables('VNet')['Subnets']['consumer']['Subnet Name'])]"
                                         }
                                     }
                                 }

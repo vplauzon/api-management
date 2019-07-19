@@ -1,4 +1,4 @@
-# AAD Authentication
+# Private & Public back-ends
 
 This code shows how to deploy an API Management with both private and public endpoints / consumers.
 
