@@ -5,8 +5,9 @@
     },
     "variables": {
         "API Management Sku": "Developer",
-        "Service Name" : "[concat('api-kv-demo-', uniqueString(subscription().id, resourceGroup().id))]",
-        "Admin Email" : "noone@nowhere.com"
+        "Service Name": "[concat('api-kv-demo-', uniqueString(subscription().id, resourceGroup().id))]",
+        "Admin Email": "noone@nowhere.com",
+        "Secret Manager API": "secret-manager"
     },
     "resources": [
         {
@@ -14,15 +15,20 @@
             "apiVersion": "2019-01-01",
             "name": "[variables('Service Name')]",
             "location": "[resourceGroup().location]",
-            "tags": {},
+            "tags": {
+            },
             "dependsOn": [
             ],
             "properties": {
                 "notificationSenderEmail": "apimgmt-noreply@mail.windowsazure.com",
-                "hostnameConfigurations": [],
-                "additionalLocations": [],
-                "customProperties": {},
-                "certificates": [],
+                "hostnameConfigurations": [
+                ],
+                "additionalLocations": [
+                ],
+                "customProperties": {
+                },
+                "certificates": [
+                ],
                 "enableClientCertificate": true,
                 "virtualNetworkType": "External",
                 "publisherEmail": "[variables('Admin Email')]",
@@ -34,7 +40,63 @@
             "identity": {
                 "type": "SystemAssigned"
             },
-            "resources": []
+            "resources": [
+                {
+                    "type": "apis",
+                    "apiVersion": "2019-01-01",
+                    "name": "[variables('Secret Manager API')]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', variables('Service Name'))]"
+                    ],
+                    "properties": {
+                        "displayName": "secret-manager",
+                        "apiRevision": "1",
+                        "path": "",
+                        "protocols": [
+                            "https"
+                        ],
+                        "isCurrent": true
+                    },
+                    "resources": [
+                        {
+                            "type": "operations",
+                            "apiVersion": "2019-01-01",
+                            "name": "get-secret",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.ApiManagement/service/apis', variables('Service Name'), variables('Secret Manager API'))]"
+                            ],
+                            "properties": {
+                                "displayName": "get-secret",
+                                "method": "GET",
+                                "urlTemplate": "/",
+                                "templateParameters": [
+                                ],
+                                "request": {
+                                    "queryParameters": [
+                                    ],
+                                    "headers": [
+                                    ],
+                                    "representations": [
+                                    ]
+                                },
+                                "responses": [
+                                    {
+                                        "statusCode": 200,
+                                        "representations": [
+                                            {
+                                                "contentType": "text/plain",
+                                                "sample": "Plain old text"
+                                            }
+                                        ],
+                                        "headers": [
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
         }
     ],
     "outputs": {
