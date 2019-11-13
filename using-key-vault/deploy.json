@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+    },
+    "variables": {
+        "API Management Sku": "Developer",
+        "Organization Name" : "demo-api",
+        "Admin Email" : "noone@nowhere.com"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ApiManagement/service",
+            "apiVersion": "2019-01-01",
+            "name": "[variables('Organization Name')]",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "dependsOn": [
+            ],
+            "properties": {
+                "notificationSenderEmail": "apimgmt-noreply@mail.windowsazure.com",
+                "hostnameConfigurations": [],
+                "additionalLocations": [],
+                "customProperties": {},
+                "certificates": [],
+                "enableClientCertificate": true,
+                "virtualNetworkType": "External",
+                "publisherEmail": "[variables('Admin Email')]",
+                "publisherName": "api-admin"
+            },
+            "sku": {
+                "name": "[variables('API Management Sku')]"
+            },
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "resources": []
+        }
+    ],
+    "outputs": {
+        "public-ip": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.ApiManagement/service', variables('Organization Name'))).publicIPAddresses[0]]"
+        }
+    }
+}
