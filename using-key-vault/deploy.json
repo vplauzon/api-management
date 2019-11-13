@@ -2,6 +2,13 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "serviceName": {
+            "type": "string",
+            "minLength": 3,
+            "metadata": {
+                "description": "The name of the API-M service behind API Management"
+            }
+        }
     },
     "variables": {
         "API Management Sku": "Developer",
@@ -12,7 +19,7 @@
         {
             "type": "Microsoft.ApiManagement/service",
             "apiVersion": "2019-01-01",
-            "name": "[variables('Organization Name')]",
+            "name": "[parameters('serviceName')]",
             "location": "[resourceGroup().location]",
             "tags": {},
             "dependsOn": [
