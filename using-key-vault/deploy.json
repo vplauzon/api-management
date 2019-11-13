@@ -8,7 +8,8 @@
         "Service Name": "[concat('api-kv-demo-', uniqueString(subscription().id, resourceGroup().id))]",
         "Admin Email": "noone@nowhere.com",
         "Secret Manager API": "secret-manager",
-        "Get Secret Operation": "get-secret"
+        "Get Secret Operation": "get-secret",
+        "Vault Name": "[concat('kv-', uniqueString(subscription().id, resourceGroup().id), '-demo')]"
     },
     "resources": [
         {
@@ -86,7 +87,7 @@
                                         "representations": [
                                             {
                                                 "contentType": "text/plain",
-                                                "sample": "Plain old text"
+                                                "sample": "Mocked response"
                                             }
                                         ],
                                         "headers": [
@@ -103,7 +104,7 @@
                                         "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('Service Name'), variables('Secret Manager API'), variables('Get Secret Operation'))]"
                                     ],
                                     "properties": {
-                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{public-service-url}}\" />\r\n    <set-body>\r\n        @{\r\n            var body=new\r\n            {\r\n                intro=context.Request.OriginalUrl.Query[\"intro\"].First(),\r\n                number=int.Parse(context.Request.Url.Query[\"number\"].First())\r\n            };\r\n            \r\n            return JObject.FromObject(body).ToString();\r\n        }\r\n        </set-body>\r\n    <rewrite-uri template=\"{{public-service-query-string}}\" copy-unmatched-params=\"false\" />\r\n    <set-method>POST</set-method>\r\n    <set-header name=\"Content-Type\" exists-action=\"override\">\r\n      <value>application/json</value>\r\n    </set-header>\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n  </inbound>\r\n  <backend>\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>My Response</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                                         "format": "xml"
                                     }
                                 }
@@ -112,7 +113,39 @@
                     ]
                 }
             ]
+        },
+        {
+            "name": "[variables('Vault Name')]",
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2018-02-14",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ApiManagement/service', variables('Service Name'))]"
+            ],
+            "tags": {
+            },
+            "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [
+                    {
+                        "tenantId": "[reference(resourceId('Microsoft.ApiManagement/service', variables('Service Name')), '2019-01-01', 'Full').identity.tenantId]",
+                        "objectId": "[reference(resourceId('Microsoft.ApiManagement/service', variables('Service Name')), '2019-01-01', 'Full').identity.principalId]",
+                        "permissions": {
+                            "secrets": [
+                                "get"
+                            ]
+                        }
+                    }
+                ],
+                "sku": {
+                    "family": "A",
+                    "name": "standard"
+                }
+            },
+            "resources": [
+            ]
         }
+
     ],
     "outputs": {
         "public-ip": {
