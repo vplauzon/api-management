@@ -7,7 +7,8 @@
         "API Management Sku": "Developer",
         "Service Name": "[concat('api-kv-demo-', uniqueString(subscription().id, resourceGroup().id))]",
         "Admin Email": "noone@nowhere.com",
-        "Secret Manager API": "secret-manager"
+        "Secret Manager API": "secret-manager",
+        "Get Secret Operation": "get-secret"
     },
     "resources": [
         {
@@ -61,12 +62,12 @@
                         {
                             "type": "operations",
                             "apiVersion": "2019-01-01",
-                            "name": "get-secret",
+                            "name": "[variables('Get Secret Operation')]",
                             "dependsOn": [
                                 "[resourceId('Microsoft.ApiManagement/service/apis', variables('Service Name'), variables('Secret Manager API'))]"
                             ],
                             "properties": {
-                                "displayName": "get-secret",
+                                "displayName": "[variables('Get Secret Operation')]",
                                 "method": "GET",
                                 "urlTemplate": "/",
                                 "templateParameters": [
@@ -92,7 +93,21 @@
                                         ]
                                     }
                                 ]
-                            }
+                            },
+                            "resources": [
+                                {
+                                    "type": "policies",
+                                    "apiVersion": "2019-01-01",
+                                    "name": "policy",
+                                    "dependsOn": [
+                                        "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('Service Name'), variables('Secret Manager API'), variables('Get Secret Operation'))]"
+                                    ],
+                                    "properties": {
+                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <set-backend-service base-url=\"{{public-service-url}}\" />\r\n    <set-body>\r\n        @{\r\n            var body=new\r\n            {\r\n                intro=context.Request.OriginalUrl.Query[\"intro\"].First(),\r\n                number=int.Parse(context.Request.Url.Query[\"number\"].First())\r\n            };\r\n            \r\n            return JObject.FromObject(body).ToString();\r\n        }\r\n        </set-body>\r\n    <rewrite-uri template=\"{{public-service-query-string}}\" copy-unmatched-params=\"false\" />\r\n    <set-method>POST</set-method>\r\n    <set-header name=\"Content-Type\" exists-action=\"override\">\r\n      <value>application/json</value>\r\n    </set-header>\r\n  </inbound>\r\n  <backend>\r\n    <base />\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                                        "format": "xml"
+                                    }
+                                }
+                            ]
                         }
                     ]
                 }
