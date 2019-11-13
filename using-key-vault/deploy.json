@@ -2,24 +2,17 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "serviceName": {
-            "type": "string",
-            "minLength": 3,
-            "metadata": {
-                "description": "The name of the API-M service behind API Management"
-            }
-        }
     },
     "variables": {
         "API Management Sku": "Developer",
-        "Organization Name" : "demo-api",
+        "Service Name" : "[concat('api-kv-demo-', uniqueString(subscription().id, resourceGroup().id))]",
         "Admin Email" : "noone@nowhere.com"
     },
     "resources": [
         {
             "type": "Microsoft.ApiManagement/service",
             "apiVersion": "2019-01-01",
-            "name": "[parameters('serviceName')]",
+            "name": "[variables('Service Name')]",
             "location": "[resourceGroup().location]",
             "tags": {},
             "dependsOn": [
@@ -47,7 +40,7 @@
     "outputs": {
         "public-ip": {
             "type": "string",
-            "value": "[reference(resourceId('Microsoft.ApiManagement/service', variables('Organization Name'))).publicIPAddresses[0]]"
+            "value": "[reference(resourceId('Microsoft.ApiManagement/service', variables('Service Name'))).publicIPAddresses[0]]"
         }
     }
 }
