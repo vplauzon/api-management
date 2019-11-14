@@ -2,6 +2,14 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "secretValue": {
+            "type": "string",
+            "defaultValue": "The secret is 42",
+            "minLength": 1,
+            "metadata": {
+                "description": "Value of the secret to store in Key Vault"
+            }
+        }
     },
     "variables": {
         "API Management Sku": "Developer",
@@ -9,7 +17,8 @@
         "Admin Email": "noone@nowhere.com",
         "Secret Manager API": "secret-manager",
         "Get Secret Operation": "get-secret",
-        "Vault Name": "[concat('kv-', uniqueString(subscription().id, resourceGroup().id), '-demo')]"
+        "Vault Name": "[concat('kv-', uniqueString(subscription().id, resourceGroup().id), '-demo')]",
+        "Secret Name": "my-secret"
     },
     "resources": [
         {
@@ -115,8 +124,8 @@
             ]
         },
         {
-            "name": "[variables('Vault Name')]",
             "type": "Microsoft.KeyVault/vaults",
+            "name": "[variables('Vault Name')]",
             "apiVersion": "2018-02-14",
             "location": "[resourceGroup().location]",
             "dependsOn": [
@@ -143,6 +152,20 @@
                 }
             },
             "resources": [
+                {
+                    "type": "secrets",
+                    "name": "[variables('Secret Name')]",
+                    "apiVersion": "2018-02-14",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('Vault Name'))]"
+                    ],
+                    "tags": {
+                    },
+                    "properties": {
+                        "value": "[parameters('secretValue')]",
+                        "contentType": "string"
+                    }
+                }
             ]
         }
 
