@@ -62,7 +62,23 @@
                     "properties": {
                         "displayName": "vault-name",
                         "value": "[variables('Vault Name')]",
-                        "tags": [],
+                        "tags": [
+                        ],
+                        "secret": false
+                    }
+                },
+                {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
+                    "name": "secret-name",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', variables('Service Name'))]"
+                    ],
+                    "properties": {
+                        "displayName": "secret-name",
+                        "value": "[variables('Secret Name')]",
+                        "tags": [
+                        ],
                         "secret": false
                     }
                 },
@@ -124,10 +140,12 @@
                                     "apiVersion": "2019-01-01",
                                     "name": "policy",
                                     "dependsOn": [
-                                        "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('Service Name'), variables('Secret Manager API'), variables('Get Secret Operation'))]"
+                                        "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('Service Name'), variables('Secret Manager API'), variables('Get Secret Operation'))]",
+                                        "[resourceId('Microsoft.ApiManagement/service/properties', variables('Service Name'), 'vault-name')]",
+                                        "[resourceId('Microsoft.ApiManagement/service/properties', variables('Service Name'), 'secret-name')]"
                                     ],
                                     "properties": {
-                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n  </inbound>\r\n  <backend>\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>My Response</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <send-request mode=\"new\" response-variable-name=\"vault-secret\" timeout=\"20\" ignore-error=\"false\">\r\n      <set-url>https://{{vault-name}}.vault.azure.net/secrets/{{secret-name}}/?api-version=7.0</set-url>\r\n      <set-method>GET</set-method>\r\n      <authentication-managed-identity resource=\"https://vault.azure.net\" />\r\n    </send-request>\r\n  </inbound>\r\n  <backend>\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>@{ return ((IResponse)context.Variables[\"vault-secret\"]).Body.As&lt;string&gt;(); }</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                                         "format": "xml"
                                     }
                                 }
