@@ -17,6 +17,7 @@
         "Admin Email": "noone@nowhere.com",
         "Secret Manager API": "secret-manager",
         "Get Secret Operation": "get-secret",
+        "Get Cached Secret Operation": "get-cached-secret",
         "Vault Name": "[concat('kv-', uniqueString(subscription().id, resourceGroup().id), '-demo')]",
         "Secret Name": "my-secret"
     },
@@ -109,7 +110,7 @@
                             "properties": {
                                 "displayName": "[variables('Get Secret Operation')]",
                                 "method": "GET",
-                                "urlTemplate": "/",
+                                "urlTemplate": "[variables('Get Secret Operation')]",
                                 "templateParameters": [
                                 ],
                                 "request": {
@@ -145,7 +146,59 @@
                                         "[resourceId('Microsoft.ApiManagement/service/properties', variables('Service Name'), 'secret-name')]"
                                     ],
                                     "properties": {
-                                        "value": "<policies>\r\n  <inbound>\r\n    <base />\r\n    <send-request mode=\"new\" response-variable-name=\"vault-secret\" timeout=\"20\" ignore-error=\"false\">\r\n      <set-url>https://{{vault-name}}.vault.azure.net/secrets/{{secret-name}}/?api-version=7.0</set-url>\r\n      <set-method>GET</set-method>\r\n      <authentication-managed-identity resource=\"https://vault.azure.net\" />\r\n    </send-request>\r\n  </inbound>\r\n  <backend>\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>@{ return ((IResponse)context.Variables[\"vault-secret\"]).Body.As&lt;string&gt;(); }</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                                        "value": "<!-- This operation fetches a secret from Key Vault and returns it as payload -->\r\n<policies>\r\n  <inbound>\r\n    <base />\r\n    <!-- Retrieve secret from Key Vault -->\r\n    <send-request mode=\"new\" response-variable-name=\"vault-secret\" timeout=\"20\" ignore-error=\"false\">\r\n      <set-url>https://{{vault-name}}.vault.azure.net/secrets/{{secret-name}}/?api-version=7.0</set-url>\r\n      <set-method>GET</set-method>\r\n      <authentication-managed-identity resource=\"https://vault.azure.net\" />\r\n    </send-request>\r\n  </inbound>\r\n  <backend>\r\n    <!-- Return secret (no back-end service call) -->\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>@(((IResponse)context.Variables[\"vault-secret\"]).Body.As&lt;string&gt;())</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
+                                        "format": "xml"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "type": "operations",
+                            "apiVersion": "2019-01-01",
+                            "name": "[variables('Get Cached Secret Operation')]",
+                            "dependsOn": [
+                                "[resourceId('Microsoft.ApiManagement/service/apis', variables('Service Name'), variables('Secret Manager API'))]"
+                            ],
+                            "properties": {
+                                "displayName": "[variables('Get Cached Secret Operation')]",
+                                "method": "GET",
+                                "urlTemplate": "[variables('Get Cached Secret Operation')]",
+                                "templateParameters": [
+                                ],
+                                "request": {
+                                    "queryParameters": [
+                                    ],
+                                    "headers": [
+                                    ],
+                                    "representations": [
+                                    ]
+                                },
+                                "responses": [
+                                    {
+                                        "statusCode": 200,
+                                        "representations": [
+                                            {
+                                                "contentType": "text/plain",
+                                                "sample": "Mocked response"
+                                            }
+                                        ],
+                                        "headers": [
+                                        ]
+                                    }
+                                ]
+                            },
+                            "resources": [
+                                {
+                                    "type": "policies",
+                                    "apiVersion": "2019-01-01",
+                                    "name": "policy",
+                                    "dependsOn": [
+                                        "[resourceId('Microsoft.ApiManagement/service/apis/operations', variables('Service Name'), variables('Secret Manager API'), variables('Get Cached Secret Operation'))]",
+                                        "[resourceId('Microsoft.ApiManagement/service/properties', variables('Service Name'), 'vault-name')]",
+                                        "[resourceId('Microsoft.ApiManagement/service/properties', variables('Service Name'), 'secret-name')]"
+                                    ],
+                                    "properties": {
+                                        "value": "<!-- This operation caches the secret -->\r\n<policies>\r\n  <inbound>\r\n    <base />\r\n    <!--Look for secret in the cache -->\r\n    <cache-lookup-value key=\"cached-secret\" variable-name=\"cached-secret\" />\r\n    <!-- If API Management doesn’t find it in the cache, fetch it from Key Vault -->\r\n    <choose>\r\n      <when condition=\"@(!context.Variables.ContainsKey(&quot;cached-secret&quot;))\">\r\n        <!-- Retrieve secret from Key Vault -->\r\n        <send-request mode=\"new\" response-variable-name=\"cached-secret\" timeout=\"20\" ignore-error=\"false\">\r\n          <set-url>https://{{vault-name}}.vault.azure.net/secrets/{{secret-name}}/?api-version=7.0</set-url>\r\n          <set-method>GET</set-method>\r\n          <authentication-managed-identity resource=\"https://vault.azure.net\" />\r\n        </send-request>\r\n        <!-- Store result in cache -->\r\n        <cache-store-value key=\"cached-secret\" value=\"@(((IResponse)context.Variables[&quot;cached-secret&quot;]).Body.As&lt;string&gt;())\" duration=\"5\" />\r\n      </when>\r\n    </choose>\r\n  </inbound>\r\n  <backend>\r\n    <!-- Return secret (no back-end service call) -->\r\n    <return-response response-variable-name=\"existing context variable\">\r\n      <set-status code=\"200\" />\r\n      <set-body>@((string)context.Variables[\"cached-secret\"])</set-body>\r\n    </return-response>\r\n  </backend>\r\n  <outbound>\r\n    <base />\r\n  </outbound>\r\n  <on-error>\r\n    <base />\r\n  </on-error>\r\n</policies>",
                                         "format": "xml"
                                     }
                                 }
