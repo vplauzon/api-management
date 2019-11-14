@@ -53,6 +53,20 @@
             },
             "resources": [
                 {
+                    "type": "properties",
+                    "apiVersion": "2019-01-01",
+                    "name": "vault-name",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.ApiManagement/service', variables('Service Name'))]"
+                    ],
+                    "properties": {
+                        "displayName": "vault-name",
+                        "value": "[variables('Vault Name')]",
+                        "tags": [],
+                        "secret": false
+                    }
+                },
+                {
                     "type": "apis",
                     "apiVersion": "2019-01-01",
                     "name": "[variables('Secret Manager API')]",
